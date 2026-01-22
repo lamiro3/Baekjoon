@@ -11,7 +11,7 @@ int dr[4] = { -1, 0, 1, 0 };
 int dc[4] = { 0, -1, 0, 1 };
 
 // ㅗ 모양 제외 테트로미노 처리
-void DFS(int r, int c, int prev, int sum, int cnt) {
+void Find(int r, int c, int prev, int sum, int cnt) {
 	if (cnt == 4) {
 		ans = max(ans, sum);
 		return;
@@ -26,7 +26,7 @@ void DFS(int r, int c, int prev, int sum, int cnt) {
 		int nc = c + dc[i];
 
 		if (0 <= nr && nr < N && 0 <= nc && nc < M)
-			DFS(nr, nc, i, sum + arr[nr][nc], cnt + 1);
+			Find(nr, nc, i, sum + arr[nr][nc], cnt + 1);
 	}
 	return;
 }
@@ -44,7 +44,7 @@ int main() {
 	for (int r = 0; r < N; r++) {
 		for (int c = 0; c < M; c++) {
 // ㅗ 모양 제외 테트로미노 처리
-			DFS(r, c, -1, arr[r][c], 1);
+			Find(r, c, -1, arr[r][c], 1);
 			
 // ㅗ 모양 테트로미노 처리
 			int cnt = 0, sum = arr[r][c];
