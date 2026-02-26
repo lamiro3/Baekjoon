@@ -1,107 +1,107 @@
 #include <iostream>
 #include <algorithm>
-#include <vector>
-
 using namespace std;
 
 const int INF = 1e9;
-int N, W;
-int e[2][10005];
-int dp[10005][3];
 
-// dp[i][0]: i번째 열의 위쪽만 채워짐
-// dp[i][1]: i번째 열의 아래쪽만 채워짐
-// dp[i][2]: i번째 열의 위/아래 모두 채워짐
+int T, N, W;
+int a[2][10001]; // i행 j열 enemy 수
+int dp[10001][3]; // dp[i] : i번째 까지 ( 위: 0, 아래: 1, 위/아래: 2 ) 연결된 경우의 최소 소대 수
 
 void solve(int start) {
     for (int i = start; i <= N; i++) {
-        // 1. i번째 열의 위/아래를 각각 1개씩 혹은 세로 1개로 채우는 경우
-        dp[i][2] = dp[i - 1][2] + (e[0][i] + e[1][i] <= W ? 1 : 2);
+        int upperLine = (a[0][i - 1] + a[0][i] <= W) ? 1 : 2;
+        int bottomLine = (a[1][i - 1] + a[1][i] <= W) ? 1 : 2;
+        int verticalLine = (a[0][i] + a[1][i] <= W) ? 1 : 2;
 
-        // 2. i-1열과 i열의 위쪽을 가로로 연결하는 경우
-        if (i > 1 && e[0][i - 1] + e[0][i] <= W) {
-            dp[i][0] = dp[i - 1][1] + 1;
-        }
-        else {
-            dp[i][0] = dp[i - 1][2] + 1;
-        }
-
-        // 3. i-1열과 i열의 아래쪽을 가로로 연결하는 경우
-        if (i > 1 && e[1][i - 1] + e[1][i] <= W) {
-            dp[i][1] = dp[i - 1][0] + 1;
-        }
-        else {
-            dp[i][1] = dp[i - 1][2] + 1;
-        }
-
-        // 4. 위/아래 모두 가로로 연결되어 i열이 완성되는 경우
-        if (i > 1) {
-            dp[i][2] = min(dp[i][2], min(dp[i][0] + 1, dp[i][1] + 1));
-            if (e[0][i - 1] + e[0][i] <= W && e[1][i - 1] + e[1][i] <= W) {
-                int prev2 = (i > 2) ? dp[i - 2][2] : 0;
-                dp[i][2] = min(dp[i][2], prev2 + 2);
-            }
-        }
+        dp[i][0] = min(dp[i - 1][1] + upperLine, dp[i - 1][2] + 1);
+        dp[i][1] = min(dp[i - 1][0] + bottomLine, dp[i - 1][2] + 1);
+        dp[i][2] = min({
+            dp[i][0] + 1,
+            dp[i][1] + 1,
+            dp[i - 1][2] + verticalLine,
+            dp[i - 2][2] + upperLine + bottomLine
+            });
     }
 }
 
 int main() {
-    ios_base::sync_with_stdio(false);
-    cin.tie(NULL);
+    ios::sync_with_stdio(false);
+    cin.tie(0);
 
-    int T;
-    cin >> T;
+    if (!(cin >> T)) return 0;
     while (T--) {
         cin >> N >> W;
-        for (int i = 0; i < 2; i++)
-            for (int j = 1; j <= N; j++)
-                cin >> e[i][j];
+        for (int i = 1; i <= N; i++) cin >> a[0][i];
+        for (int i = 1; i <= N; i++) cin >> a[1][i];
 
         if (N == 1) {
-            cout << (e[0][1] + e[1][1] <= W ? 1 : 2) << "\n";
+            cout << (a[0][1] + a[1][1] <= W ? 1 : 2) << "\n";
             continue;
         }
 
         int ans = INF;
 
-        for (int i = 0; i <= N; i++) 
-            dp[i][0] = dp[i][1] = dp[i][2] = INF;
+        auto init = [&]() {
+            for (int i = 0; i <= N; i++)
+                for (int j = 0; j < 3; j++)
+                    dp[i][j] = INF;
 
-        dp[0][2] = 0;
+            // i=2일 때 대비해 0 번째 위/아래 모두 연결된 경우 0으로 set
+            dp[0][2] = 0;
+            };
 
-        // Case 1: 아무 연결 없음
-        solve(1);
+        // 원형이기 때문에 시작 조건(1번 ~ N번 연결 여부)에 따라 결과 달라짐
+
+        // 1. 원형 연결 없음
+        init();
+        dp[1][0] = 1;
+        dp[1][1] = 1;
+        dp[1][2] = (a[0][1] + a[1][1] <= W) ? 1 : 2;
+        solve(2);
         ans = min(ans, dp[N][2]);
 
-        // Case 2: 1번-N번 위쪽 가로 연결
-        if (e[0][1] + e[0][N] <= W) {
-            for (int i = 0; i <= N; i++) 
-                dp[i][0] = dp[i][1] = dp[i][2] = INF;
-            dp[1][0] = 1;
-            dp[1][1] = (e[1][1] > 0) ? 2 : 1; // 1번 아래는 단독 배치
+        // 2. 윗줄만 연결
+        if (N > 1 && a[0][1] + a[0][N] <= W) {
+            init();
+            dp[1][0] = 1; 
+            dp[1][1] = 1; 
             dp[1][2] = 2;
+            
+            //i=2일 때 1번 위와 2번 위가 다시 묶이지 않게 처리
+            int tmp = a[0][1]; a[0][1] = INF;
             solve(2);
             ans = min(ans, dp[N][1]);
+            a[0][1] = tmp;
         }
 
-        // Case 3: 1번-N번 아래쪽 가로 연결
-        if (e[1][1] + e[1][N] <= W) {
-            for (int i = 0; i <= N; i++) 
-                dp[i][0] = dp[i][1] = dp[i][2] = INF;
+        // 3. 아랫줄만 연결
+        if (N > 1 && a[1][1] + a[1][N] <= W) {
+            init();
+            dp[1][0] = 1;
             dp[1][1] = 1;
-            dp[1][0] = (e[0][1] > 0) ? 2 : 1; // 1번 위는 단독 배치
             dp[1][2] = 2;
+
+            //i=2일 때 1번 아래와 2번 아래가 다시 묶이지 않게 처리
+            int tmp = a[1][1]; a[1][1] = INF;
             solve(2);
             ans = min(ans, dp[N][0]);
+            a[1][1] = tmp;
         }
 
-        // Case 4: 1번-N번 위/아래 모두 가로 연결
-        if (e[0][1] + e[0][N] <= W && e[1][1] + e[1][N] <= W) {
-            for (int i = 0; i <= N; i++) 
-                dp[i][0] = dp[i][1] = dp[i][2] = INF;
+        // 4. 위아래 둘 다 연결
+        if (N > 1 && a[0][1] + a[0][N] <= W && a[1][1] + a[1][N] <= W) {
+            init();
+            dp[1][0] = 1;
+            dp[1][1] = 1;
             dp[1][2] = 2;
+
+            //i=2일 때 1번 위, 아래와 2번 위, 아래가 다시 묶이지 않게 처리
+            int t0 = a[0][1], t1 = a[1][1];
+            a[0][1] = a[1][1] = INF;
             solve(2);
             ans = min(ans, dp[N - 1][2]);
+            a[0][1] = t0; a[1][1] = t1;
         }
 
         cout << ans << "\n";
